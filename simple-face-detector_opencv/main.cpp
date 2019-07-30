@@ -71,13 +71,8 @@ int main(int argc, const char * argv[]) {
             rectangle(cameraFrame, faces[i], Scalar(0, 0, 255), 2);
         }
         
-        //Here we show the drawn image in a named window called output
         imshow("FaceDetector", cameraFrame);
         
-        /*
-         Wait 50 ms for key pressed
-         returns -1 if no key is pressed during that time
-         */
         if (waitKey(50) >= 0) {
             break;
         }
