@@ -13,10 +13,7 @@ using namespace cv;
 using namespace std;
 
 int main(int argc, const char * argv[]) {
-    //Capture stream from webcam
     VideoCapture capture(0);
-    
-    //Check if we can get the webcam stream
     if (!capture.isOpened()) {
         cout << "Could not open camera!" << endl;
         return -1;
@@ -24,42 +21,29 @@ int main(int argc, const char * argv[]) {
     
     double dWidth = capture.get(CAP_PROP_FRAME_WIDTH);
     double dHeight = capture.get(CAP_PROP_FRAME_HEIGHT);
-    
     cout << "Frame size: " << dWidth << "x" << dHeight << endl;
-    
     namedWindow("FaceDetector", WINDOW_AUTOSIZE);
     
-    /*
-     OpenCV saves detection rules as something called a CascadeClassifier
-     which can be used to detect object in images
-     */
-    CascadeClassifier faceCascade;
+    CascadeClassifier faceCascade, eyeCascade;
     
-    /*
-     Load the lbpcascade_frontalface.xml containing the rules to detect faces.
-     The file should be right next to the binary.
-     */
     if (!faceCascade.load("lbpcascade_frontalface.xml")) {
-        cout << "Failed to load cascade classfier!" << endl;
+        cout << "Failed to load cascade classfier for face!" << endl;
+        return -1;
+    }
+    
+    if (!eyeCascade.load("haarcascade_eye.xml")) {
+        cout << "Failed to load cascade classfier for eyes!" << endl;
         return -1;
     }
     
     while (true) {
-        //This variable will hold the image from webcam
-        Mat cameraFrame;
+        Mat cameraFrame, grayImage;
+        vector<Rect> faces, eyes;
         
-        //Read an image from webcam
         capture.read(cameraFrame);
+        cvtColor(cameraFrame, grayImage, COLOR_BGR2GRAY);
+        equalizeHist(grayImage, grayImage);
         
-        //This vector will hold the rectangles coordinates to a detection inside the image
-        vector<Rect> faces;
-        
-        /*
-         This function detects the faces in the image and
-         place the rectangles of the faces in the vector.
-         See the detectMultiScale() documentation for more details
-         about the rest of the parameters.
-         */
         faceCascade.detectMultiScale(
                                      cameraFrame,
                                      faces,
@@ -68,11 +52,22 @@ int main(int argc, const char * argv[]) {
                                      0 | CASCADE_SCALE_IMAGE,
                                      Size(30, 30));
         
-        /*
-         Draw the rectangles onto the image
-         with a red border of thickness 2.
-         */
         for (size_t i = 0; i < faces.size(); i++) {
+            Mat faceROI = grayImage(faces[i]);
+            eyeCascade.detectMultiScale(
+                                         faceROI,
+                                         eyes,
+                                         1.1,
+                                         2,
+                                         0 | CASCADE_SCALE_IMAGE,
+                                         Size(30, 30));
+            
+            for (size_t j = 0; j < eyes.size(); j++) {
+                Point center(faces[i].x + eyes[j].x + eyes[j].width * 0.5,
+                             faces[i].y + eyes[j].y + eyes[j].height * 0.5);
+                int radius = cvRound((eyes[j].width + eyes[j].height) * 0.25);
+                circle(cameraFrame, center, radius, Scalar(0, 255, 0), 2, 8, 0);
+            }
             rectangle(cameraFrame, faces[i], Scalar(0, 0, 255), 2);
         }
         
@@ -87,6 +82,4 @@ int main(int argc, const char * argv[]) {
             break;
         }
     }
-    
-    return 0;
 }
