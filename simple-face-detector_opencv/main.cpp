@@ -24,7 +24,7 @@ int main(int argc, const char * argv[]) {
     cout << "Frame size: " << dWidth << "x" << dHeight << endl;
     namedWindow("FaceDetector", WINDOW_AUTOSIZE);
     
-    CascadeClassifier faceCascade, eyeCascade;
+    CascadeClassifier faceCascade, eyeCascade, smileCascade;
     
     if (!faceCascade.load("lbpcascade_frontalface.xml")) {
         cout << "Failed to load cascade classfier for face!" << endl;
@@ -36,9 +36,14 @@ int main(int argc, const char * argv[]) {
         return -1;
     }
     
+    if (!smileCascade.load("haarcascade_smile.xml")) {
+        cout << "Failed to load cascade classfier for smile!" << endl;
+        return -1;
+    }
+    
     while (true) {
         Mat cameraFrame, grayImage;
-        vector<Rect> faces, eyes;
+        vector<Rect> faces, eyes, smiles;
         
         capture.read(cameraFrame);
         cvtColor(cameraFrame, grayImage, COLOR_BGR2GRAY);
@@ -47,8 +52,8 @@ int main(int argc, const char * argv[]) {
         faceCascade.detectMultiScale(
                                      cameraFrame,
                                      faces,
-                                     1.09,
-                                     3,
+                                     1.3,
+                                     5,
                                      0 | CASCADE_SCALE_IMAGE,
                                      Size(30, 30));
         
@@ -58,9 +63,17 @@ int main(int argc, const char * argv[]) {
                                          faceROI,
                                          eyes,
                                          1.1,
-                                         2,
+                                         22,
                                          0 | CASCADE_SCALE_IMAGE,
                                          Size(30, 30));
+            
+            smileCascade.detectMultiScale(
+                                        faceROI,
+                                        smiles,
+                                        5,
+                                        22,
+                                        0 | CASCADE_SCALE_IMAGE,
+                                        Size(30, 30));
             
             for (size_t j = 0; j < eyes.size(); j++) {
                 Point center(faces[i].x + eyes[j].x + eyes[j].width * 0.5,
@@ -68,6 +81,13 @@ int main(int argc, const char * argv[]) {
                 int radius = cvRound((eyes[j].width + eyes[j].height) * 0.25);
                 circle(cameraFrame, center, radius, Scalar(0, 255, 0), 2, 8, 0);
             }
+            
+            for (size_t k = 0; k < smiles.size(); k++) {
+                Point center(faces[i].x + smiles[k].x + smiles[k].width * 0.5,
+                             faces[i].y + smiles[k].y + smiles[k].height * 0.5);
+                ellipse(cameraFrame, center, Size(smiles[k].width * 0.5, smiles[k].height * 0.5), 0, 0, 360, Scalar(255, 0, 0), 2, 8, 0);
+            }
+            
             rectangle(cameraFrame, faces[i], Scalar(0, 0, 255), 2);
         }
         
